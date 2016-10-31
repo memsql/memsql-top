@@ -1,0 +1,5 @@
+venv_darwin
+venv_linux
+*.pyc
+build
+dist
