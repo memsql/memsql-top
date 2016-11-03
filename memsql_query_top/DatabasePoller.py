@@ -68,17 +68,23 @@ def DiffPlanCache(new_plancache, old_plancache, interval):
     diff_plancache = {}
     for key, n_ent in new_plancache.items():
         if key not in old_plancache:
-            diff_plancache[key] = NormalizeDiffPlanCacheEntry(
-                interval,
-                plan_id=n_ent.plan_id,
-                database_name=n_ent.database_name,
-                query_text=n_ent.query_text,
-                commits=n_ent.commits,
-                rowcount=n_ent.rowcount,
-                execution_time=n_ent.execution_time,
-                cpu_time=n_ent.cpu_time,
-                memory_use=n_ent.memory_use,
-                queued_time=n_ent.queued_time)
+            #
+            # It is possible for a plan cache entry to exist (or be newly
+            # created) with a zero commit-count: for example, a slow query that
+            # has not yet completed or erroring queries.
+            #
+            if n_ent.commits > 0:
+                diff_plancache[key] = NormalizeDiffPlanCacheEntry(
+                    interval,
+                    plan_id=n_ent.plan_id,
+                    database_name=n_ent.database_name,
+                    query_text=n_ent.query_text,
+                    commits=n_ent.commits,
+                    rowcount=n_ent.rowcount,
+                    execution_time=n_ent.execution_time,
+                    cpu_time=n_ent.cpu_time,
+                    memory_use=n_ent.memory_use,
+                    queued_time=n_ent.queued_time)
         elif n_ent.commits - old_plancache[key].commits > 0:
             o_ent = old_plancache[key]
             diff_plancache[key] = NormalizeDiffPlanCacheEntry(
