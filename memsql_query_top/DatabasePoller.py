@@ -55,12 +55,12 @@ def NormalizeDiffPlanCacheEntry(interval, plan_id, database_name, query_text,
         'PlanId': plan_id,
         'Database': database_name,
         'Query': query_text,
-        'Executions': commits / interval,
-        'RowCount': rowcount / interval,
+        'ExecutionsPS': commits / interval,
+        'RowCountPS': rowcount / interval,
         'CpuUtil': cpu_time / 1000.0 / interval,
-        'ExecutionTime': execution_time / commits,
-        'Memory': memory_use / commits,
-        'QueuedTime': queued_time / commits
+        'ExecutionTimePQ': execution_time / commits,
+        'MemoryPQ': memory_use / commits,
+        'QueuedTimePQ': queued_time / commits
     }))
 
 
