@@ -36,8 +36,6 @@ def main():
     parser.add_argument("--port", default=3306, type=int)
     parser.add_argument("--password", default="")
     parser.add_argument("--user", default="root")
-    parser.add_argument("--leaf-user", default="root")
-    parser.add_argument("--leaf-password", default="")
 
     parser.add_argument("--cores", default=4, type=int)
 
@@ -46,6 +44,7 @@ def main():
     args = parser.parse_args()
 
     conn = database.connect(host=args.host, port=args.port,
+                            database="information_schema",
                             password=args.password, user=args.user)
 
     ACCENT_ORANGE = 'h202'
@@ -88,10 +87,10 @@ def main():
     if not conn.get('select @@forward_aggregator_plan_hash as f').f:
         sys.exit("Enable forward_aggregator_plan_hash to use query-top")
 
+    # TODO(awreece) This isn't accurately max memory across the whole cluster.
     max_mem = int(conn.get('select @@maximum_memory as m').m)
 
-    dbpoller = DatabasePoller(conn, args.interval, args.leaf_user,
-                              args.leaf_password)
+    dbpoller = DatabasePoller(conn, args.interval)
 
     resources = ResourceMonitor(args.cores, max_mem)
     column_headings = ColumnHeadings()

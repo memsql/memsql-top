@@ -26,7 +26,6 @@ class QueryRow(urwid.AttrMap):
     signals = ['click']
 
     def __init__(self, **kwargs):
-        self.PlanId = kwargs['PlanId']
         columns = []
         self.fields = {}
         self.widgets = {}

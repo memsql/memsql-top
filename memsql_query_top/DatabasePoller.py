@@ -24,43 +24,39 @@ from memsql.common import database
 
 from columns import CheckHasDataForAllColumns
 
-PlanCacheKey = namedtuple("PlanCacheKey", ["PlanHash", "AggregatorPlanHash"])
-
-
 def GetPlanCache(conn):
     #
     # We store the parameterized query and deparameterize it in GetPlanCache so
     # that we can filter out this query.
     #
-    GET_PLANCACHE_QUERY = "select plan_id, database_name, query_text, " + \
-                          "plan_hash, aggregator_plan_hash, " +\
+    # We filter out queries where the plan_hash is null, because those
+    # correspond to leaf queries with no corresponding aggregator.
+    #
+    GET_PLANCACHE_QUERY = "select database_name, query_text, plan_hash, " + \
                           "commits, rowcount, execution_time, " + \
-                          "IFNULL(queued_time, @) as queued_time, " + \
-                          "cpu_time, " + \
-                          "commits*average_memory_use as memory_use " + \
-                          "from information_schema.plancache"
+                          "queued_time, cpu_time, memory_use " + \
+                          "from distributed_plancache_view " + \
+                          "where plan_hash is not null"
 
-    rows = conn.query(GET_PLANCACHE_QUERY.replace("@", "0"))
-
+    rows = conn.query(GET_PLANCACHE_QUERY)
     return {
-        PlanCacheKey(r.plan_hash, r.aggregator_plan_hash): r
+        r.plan_hash: r
         for r in rows if r.query_text != GET_PLANCACHE_QUERY
     }
 
 
-def NormalizeDiffPlanCacheEntry(interval, plan_id, database_name, query_text,
+def NormalizeDiffPlanCacheEntry(interval, database_name, query_text,
                                 commits, rowcount, cpu_time, execution_time,
                                 memory_use, queued_time):
     return CheckHasDataForAllColumns(AttrDict({
-        'PlanId': plan_id,
         'Database': database_name,
         'Query': query_text,
-        'ExecutionsPS': commits / interval,
-        'RowCountPS': rowcount / interval,
-        'CpuUtil': cpu_time / 1000.0 / interval,
-        'ExecutionTimePQ': execution_time / commits,
-        'MemoryPQ': memory_use / commits,
-        'QueuedTimePQ': queued_time / commits
+        'ExecutionsPS': float(commits) / interval,
+        'RowCountPS': float(rowcount) / interval,
+        'CpuUtil': float(cpu_time) / 1000.0 / interval,
+        'ExecutionTimePQ': float(execution_time) / float(commits),
+        'MemoryPQ': float(memory_use) / float(commits),
+        'QueuedTimePQ': float(queued_time) / float(commits)
     }))
 
 
@@ -76,7 +72,6 @@ def DiffPlanCache(new_plancache, old_plancache, interval):
             if n_ent.commits > 0:
                 diff_plancache[key] = NormalizeDiffPlanCacheEntry(
                     interval,
-                    plan_id=n_ent.plan_id,
                     database_name=n_ent.database_name,
                     query_text=n_ent.query_text,
                     commits=n_ent.commits,
@@ -89,7 +84,6 @@ def DiffPlanCache(new_plancache, old_plancache, interval):
             o_ent = old_plancache[key]
             diff_plancache[key] = NormalizeDiffPlanCacheEntry(
                 interval,
-                plan_id=n_ent.plan_id,
                 database_name=n_ent.database_name,
                 query_text=n_ent.query_text,
                 commits=n_ent.commits - o_ent.commits,
@@ -105,42 +99,21 @@ def DiffPlanCache(new_plancache, old_plancache, interval):
 class DatabasePoller(urwid.Widget):
     signals = ['plancache_changed', 'cpu_util_changed', 'mem_usage_changed']
 
-    def __init__(self, conn, update_interval, leafuser, leafpass):
+    def __init__(self, conn, update_interval):
         self.conn = conn
-        self.leaf_conns = [
-            database.connect(host=l['Host'], port=l['Port'], password=leafpass,
-                             user=leafuser)
-            for l in conn.query("show leaves")
-        ]
         self.update_interval = update_interval
-        self.plancache = self.get_distributed_plancache()
+        self.plancache = GetPlanCache(self.conn)
         super(DatabasePoller, self).__init__()
 
-    def get_distributed_plancache(self):
-        ma_plancache = GetPlanCache(self.conn)
-        for c in self.leaf_conns:
-            for k, lpce in GetPlanCache(c).items():
-                mpk = PlanCacheKey(k.AggregatorPlanHash, None)
-                if mpk in ma_plancache:
-                    mpce = ma_plancache[mpk]
-                    #
-                    # We aggregate cpu_time and memory_use since they are
-                    # resources (properties of the cluster) but we do not
-                    # aggregate queued_time, commits, etc because the MA
-                    # version of those metrics is more useful.
-                    #
-                    mpce.cpu_time += lpce.cpu_time
-                    mpce.memory_use += lpce.memory_use
-        return ma_plancache
 
     def poll(self, loop, _):
         loop.set_alarm_in(self.update_interval, self.poll)
-        ma_plancache = self.get_distributed_plancache()
+        new_plancache = GetPlanCache(self.conn)
 
-        diff_plancache = DiffPlanCache(ma_plancache, self.plancache,
+        diff_plancache = DiffPlanCache(new_plancache, self.plancache,
                                        self.update_interval)
         self._emit('plancache_changed', diff_plancache)
-        self.plancache = ma_plancache
+        self.plancache = new_plancache
 
         sum_cpu_util = sum(pe.CpuUtil for pe in diff_plancache.values())
         self._emit('cpu_util_changed', sum_cpu_util)
