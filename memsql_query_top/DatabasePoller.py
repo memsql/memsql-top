@@ -35,7 +35,7 @@ def GetPlanCache(conn):
     GET_PLANCACHE_QUERY = "select database_name, query_text, plan_hash, " + \
                           "commits, rowcount, execution_time, " + \
                           "queued_time, cpu_time, memory_use " + \
-                          "from distributed_plancache_view " + \
+                          "from distributed_plancache_summary " + \
                           "where plan_hash is not null"
 
     rows = conn.query(GET_PLANCACHE_QUERY)
