@@ -21,7 +21,7 @@ import argparse
 import curses
 import sys
 
-from memsql.common import database
+import database
 
 from DatabasePoller import DatabasePoller
 from QueryListBox import QueryListBox
@@ -37,15 +37,20 @@ def main():
     parser.add_argument("--password", default="")
     parser.add_argument("--user", default="root")
 
-    parser.add_argument("--cores", default=4, type=int)
+    parser.add_argument("--cores", default=4, type=int,
+	                help="When calculating max cpu util, assume the cluster has this many cores.")
 
-    parser.add_argument("--interval", default=3.0, type=float)
+    parser.add_argument("--update-interval", default=3.0, type=float,
+	                help="How frequently to update the screen.")
 
     args = parser.parse_args()
 
-    conn = database.connect(host=args.host, port=args.port,
-                            database="information_schema",
-                            password=args.password, user=args.user)
+    try:
+	conn = database.connect(host=args.host, port=args.port,
+				database="information_schema",
+				password=args.password, user=args.user)
+    except Exception as e:
+	sys.exit("Unexpected error when connecting to database: %s" % e)
 
     ACCENT_ORANGE = 'h202'
     _ACCENT_ORANGE = 'light red'
@@ -90,7 +95,7 @@ def main():
     # TODO(awreece) This isn't accurately max memory across the whole cluster.
     max_mem = int(conn.get('select @@maximum_memory as m').m)
 
-    dbpoller = DatabasePoller(conn, args.interval)
+    dbpoller = DatabasePoller(conn, args.update_interval)
 
     resources = ResourceMonitor(args.cores, max_mem)
     column_headings = ColumnHeadings()
@@ -136,7 +141,7 @@ def main():
     curses.setupterm()
     if curses.tigetnum("colors") == 256:
         loop.screen.set_terminal_properties(colors=256)
-    loop.set_alarm_in(args.interval, dbpoller.poll)
+    loop.set_alarm_in(args.update_interval, dbpoller.poll)
     loop.run()
 
 

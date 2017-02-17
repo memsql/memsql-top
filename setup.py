@@ -33,7 +33,7 @@ setup(
     install_requires=[
         'urwid',
         'attrdict',
-        'memsql',
+        'pymysql',
     ],
     packages=find_packages(),
     classifiers=[

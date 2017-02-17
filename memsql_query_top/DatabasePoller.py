@@ -20,7 +20,6 @@ import urwid
 
 from attrdict import AttrDict
 from collections import namedtuple
-from memsql.common import database
 
 from columns import CheckHasDataForAllColumns
 
