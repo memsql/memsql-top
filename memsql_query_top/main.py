@@ -29,6 +29,7 @@ from ResourceMonitor import ResourceMonitor
 from WrappingPopUpViewer import WrappingPopUpViewer
 from ColumnHeadings import ColumnHeadings
 
+from distutils.version import LooseVersion
 
 def main():
     parser = argparse.ArgumentParser()
@@ -85,6 +86,10 @@ def main():
          _ACCENT_ORANGE, _BACKGROUND_BLUE, 'bold,underline',
          ACCENT_ORANGE, BACKGROUND_BLUE),
     ]
+
+    memsql_version = conn.get("select @@memsql_version as v").v
+    if LooseVersion(memsql_version) < LooseVersion("5.7"):
+	sys.exit("memsql 5.7 or above is required -- got %s" % memsql_version)
 
     # Run any check system queries before we start the DatabasePoller and
     # start tracking queries.
