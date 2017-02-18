@@ -28,26 +28,19 @@ class ResourceMonitor(urwid.WidgetWrap):
 
         super(ResourceMonitor, self).__init__(urwid.Pile([
             urwid.Columns([
-                urwid.Text("CPU"),
-                urwid.Divider(),
-                urwid.Divider(),
-                urwid.Text("Memory"),
-                urwid.Divider(" "),
-            ]),
-            urwid.Columns([
-                urwid.Text("Util"),
+                urwid.Text("CPU Util", align="right"),
                 self.cpu_utilbar,
                 urwid.Divider(),
-                urwid.Text("Util"),
+                urwid.Text("Memory Capacity", align="right"),
                 self.mem_utilbar
             ]),
-            urwid.Columns([
-                urwid.Text("Sched Latency"),
-                urwid.ProgressBar('resource_bar_empty', 'resource_bar'),
-                urwid.Divider(),
-                urwid.Text("Paging"),
-                urwid.ProgressBar('resource_bar_empty', 'resource_bar'),
-            ])
+#            urwid.Columns([
+#                urwid.Text("CPU Sched Latency"),
+#                urwid.ProgressBar('resource_bar_empty', 'resource_bar'),
+#                urwid.Divider(),
+#                urwid.Text("Memory Paging"),
+#                urwid.ProgressBar('resource_bar_empty', 'resource_bar'),
+#            ])
         ]))
 
     def update_cpu_util(self, _, util):

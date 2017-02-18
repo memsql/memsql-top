@@ -50,12 +50,12 @@ def NormalizeDiffPlanCacheEntry(interval, database_name, query_text,
     return CheckHasDataForAllColumns(AttrDict({
         'Database': database_name,
         'Query': query_text,
-        'ExecutionsPS': float(commits) / interval,
-        'RowCountPS': float(rowcount) / interval,
+        'Executions/sec': float(commits) / interval,
+        'RowCount/sec': float(rowcount) / interval,
         'CpuUtil': float(cpu_time) / 1000.0 / interval,
-        'ExecutionTimePQ': float(execution_time) / float(commits),
-        'MemoryPQ': float(memory_use) / float(commits),
-        'QueuedTimePQ': float(queued_time) / float(commits)
+        'ExecutionTime/query': float(execution_time) / float(commits),
+        'Memory/query': float(memory_use) / float(commits),
+        'QueuedTime/query': float(queued_time) / float(commits)
     }))
 
 
@@ -117,5 +117,6 @@ class DatabasePoller(urwid.Widget):
         sum_cpu_util = sum(pe.CpuUtil for pe in diff_plancache.values())
         self._emit('cpu_util_changed', sum_cpu_util)
 
+        # TODO(awreece) This isn't accurately max memory across the whole cluster.
         tsm_row = self.conn.get("show status like 'Total_server_memory'")
         self._emit('mem_usage_changed', float(tsm_row.Value.split(" ")[0]))

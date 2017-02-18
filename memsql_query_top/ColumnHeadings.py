@@ -52,7 +52,7 @@ class ColumnHeadings(urwid.Columns):
         for name, meta in COLUMNS.items():
             contents = name
             if meta.sort_key:
-                contents = [name, ' ', ('key', "(%s)" % meta.sort_key.upper())]
+                contents = [name, ' ', ('head_key', "(%s)" % meta.sort_key.upper())]
 
             contents = urwid.Text(contents, wrap="clip")
             contents = SortableColumn(contents, 'head')

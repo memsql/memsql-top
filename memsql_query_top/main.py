@@ -53,38 +53,42 @@ def main():
     except Exception as e:
 	sys.exit("Unexpected error when connecting to database: %s" % e)
 
-    ACCENT_ORANGE = 'h202'
-    _ACCENT_ORANGE = 'light red'
-    BACKGROUND_BLUE = 'h17'
-    _BACKGROUND_BLUE = 'black'
-    DARK_BLUE = 'h24'
-    _DARK_BLUE = 'light blue'
-    LIGHT_BLUE = 'h31'
-    _LIGHT_BLUE = 'dark blue'
+    BLACK = 'h16'
+    _BLACK = 'black'
+    BLUE = 'h24'
+    _BLUE = 'light blue'
     ACCENT_BLUE = 'h74'
     _ACCENT_BLUE = 'dark cyan'
-    GREY = 'h188'
-    _GREY = 'light gray'
+    LIGHT_GRAY = 'h255'
+    _LIGHT_GRAY = 'light gray'
+    GRAY = 'h253'
+    _GRAY = 'light gray'
+    TEXT_GRAY = 'h240'
+    _TEXT_GRAY = 'dark gray'
+    HEAD_GRAY = 'h102'
+    _HEAD_GRAY = 'light gray'
+    DARK_GRAY = 'h234'
+    _DARK_GRAY = 'dark gray'
     WHITE = 'h231'
     _WHITE = 'white'
 
     palette = [
-        ('body', _DARK_BLUE, _WHITE, '', DARK_BLUE, WHITE),
+        ('body', _TEXT_GRAY, _WHITE, '', TEXT_GRAY, WHITE),
         ('body_focus',
-         _WHITE, _ACCENT_BLUE, 'underline', DARK_BLUE, ACCENT_BLUE),
-        ('popup', _DARK_BLUE, _WHITE, '', DARK_BLUE, WHITE),
+         _TEXT_GRAY, _LIGHT_GRAY, 'underline', TEXT_GRAY, LIGHT_GRAY),
+        ('popup', _TEXT_GRAY, _WHITE, '', TEXT_GRAY, WHITE),
         ('head',
-         _LIGHT_BLUE, _BACKGROUND_BLUE, 'bold', LIGHT_BLUE, BACKGROUND_BLUE),
+         _HEAD_GRAY, _DARK_GRAY, 'bold', HEAD_GRAY, DARK_GRAY),
+        ('head_key',
+         _ACCENT_BLUE, _DARK_GRAY, 'bold,underline', ACCENT_BLUE, DARK_GRAY),
         ('head_so',
-         _ACCENT_ORANGE, _BACKGROUND_BLUE, 'bold,standout',
-         ACCENT_ORANGE, BACKGROUND_BLUE),
-        ('resource_bar_empty', _DARK_BLUE, _WHITE, '', DARK_BLUE, WHITE),
-        ('resource_bar', _DARK_BLUE, _GREY, '', DARK_BLUE, GREY),
+         _WHITE, _DARK_GRAY, 'bold,standout', WHITE, DARK_GRAY),
+        ('resource_bar_empty', _GRAY, _BLACK, '', GRAY, BLACK),
+        ('resource_bar', _GRAY, _BLUE, '', GRAY, BLUE),
         ('foot',
-         _LIGHT_BLUE, _BACKGROUND_BLUE, 'bold', LIGHT_BLUE, BACKGROUND_BLUE),
-        ('key',
-         _ACCENT_ORANGE, _BACKGROUND_BLUE, 'bold,underline',
-         ACCENT_ORANGE, BACKGROUND_BLUE),
+         _TEXT_GRAY, _LIGHT_GRAY, 'bold', TEXT_GRAY, LIGHT_GRAY),
+        ('foot_key',
+         _ACCENT_BLUE, _LIGHT_GRAY, 'bold,underline', ACCENT_BLUE, LIGHT_GRAY),
     ]
 
     memsql_version = conn.get("select @@memsql_version as v").v
@@ -98,14 +102,16 @@ def main():
         sys.exit("Enable forward_aggregator_plan_hash to use query-top")
 
     # TODO(awreece) This isn't accurately max memory across the whole cluster.
-    max_mem = int(conn.get('select @@maximum_memory as m').m)
+    max_mem = int(conn.get('select (select count(*) from information_schema.leaves) * (select @@maximum_memory) as m').m)
 
     dbpoller = DatabasePoller(conn, args.update_interval)
 
     resources = ResourceMonitor(args.cores, max_mem)
     column_headings = ColumnHeadings()
     header = urwid.Pile([
-        resources,
+        urwid.Text("MemSQL - QueryTop"),
+# The resources are currently a lie, don't show them.
+#       resources,
         urwid.Divider(),
         column_headings
     ])
@@ -113,11 +119,11 @@ def main():
     qlistbox = QueryListBox()
 
     footer = urwid.Text([
-        ('key', "UP"), ", ", ('key', "DOWN"), ", ",
-        ('key', "PAGE UP"), " and ", ('key', "PAGE DOWN"),
+        ('foot_key', "UP"), ", ", ('foot_key', "DOWN"), ", ",
+        ('foot_key', "PAGE UP"), " and ", ('foot_key', "PAGE DOWN"),
         " move view  ",
-        ('key', "F#"), " sorts by column ",
-        ('key', "Q"), " exits",
+        ('foot_key', "F#"), " sorts by column ",
+        ('foot_key', "Q"), " exits",
     ])
 
     view = WrappingPopUpViewer(urwid.Frame(
