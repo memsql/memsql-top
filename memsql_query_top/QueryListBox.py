@@ -27,20 +27,31 @@ class QueryRow(urwid.AttrMap):
 
     def __init__(self, **kwargs):
         columns = []
-        self.fields = {}
-        self.widgets = {}
+        self.values = {}
+        self.text = {}
+        self.attr = {}
         for name, meta in COLUMNS.items():
             t = urwid.Text(meta.humanize(kwargs[name]), wrap="clip")
-            self.widgets[name] = t
-            self.fields[name] = kwargs[name]
+            color = meta.colorize(kwargs[name])
+            a = urwid.AttrMap(t, 'body_%d' % color)
+            self.text[name] = t
+            self.attr[name] = a
+            self.values[name] = kwargs[name]
 
             if meta.fixed_width:
-                columns.append((GetColumnWidth(name), t))
+                columns.append((GetColumnWidth(name), a))
             else:
-                columns.append(t)
+                columns.append(a)
 
         content = urwid.Columns(columns, dividechars=1)
-        super(QueryRow, self).__init__(content, "body", "body_focus")
+        super(QueryRow, self).__init__(content, "body", {
+            "body_0": "body_focus_0",
+            "body_1": "body_focus_1",
+            "body_2": "body_focus_2",
+            "body_3": "body_focus_3",
+            "body_4": "body_focus_4",
+            None: "body_focus",
+        })
 
     def selectable(self):
         return True
@@ -53,8 +64,10 @@ class QueryRow(urwid.AttrMap):
 
     def update(self, **kwargs):
         for name, meta in COLUMNS.items():
-            self.widgets[name].set_text(meta.humanize(kwargs[name]))
-            self.fields[name] = kwargs[name]
+            self.text[name].set_text(meta.humanize(kwargs[name]))
+            color = meta.colorize(kwargs[name])
+            self.attr[name].set_attr_map({None: 'body_%d' % color})
+            self.values[name] = kwargs[name]
 
 
 class QueryListBox(urwid.ListBox):
@@ -68,7 +81,7 @@ class QueryListBox(urwid.ListBox):
         super(QueryListBox, self).__init__(self.qrlist)
 
     def sort_columns(self):
-        self.qrlist.sort(key=lambda qr: qr.fields[self.sort_column],
+        self.qrlist.sort(key=lambda qr: qr.values[self.sort_column],
                          reverse=True)
 
     def sort_keys(self):
@@ -95,7 +108,7 @@ class QueryListBox(urwid.ListBox):
                 #
                 urwid.connect_signal(self.widgets[key], 'click',
                                      lambda qr: self._emit("query_selected",
-                                                           qr.fields['Query']))
+                                                           qr.values['Query']))
                 self.qrlist.append(self.widgets[key])
             else:
                 self.widgets[key].update(**ent)

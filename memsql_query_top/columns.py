@@ -23,39 +23,47 @@ from collections import OrderedDict, namedtuple
 from humanize import *
 
 CM = namedtuple("ColumnMetadata",
-                ["fixed_width", "humanize", "sort_key", "help"])
+                ["fixed_width", "humanize", "colorize", "sort_key", "help"])
 
 COLUMNS = OrderedDict([
     ("Database",        CM(fixed_width=True,
                            humanize=lambda c: str(c),
+                           colorize=lambda c: 0,
                            sort_key="f1",
                            help="Database name")),
     ("Query",           CM(fixed_width=False,
                            humanize=CleanQuery,
+                           colorize=lambda c: 0,
                            sort_key="f2",
                            help="Paramaterized aggregator query")),
     ("Executions/sec",  CM(fixed_width=True,
                            humanize=HumanizeCount,
+                           colorize=GetColorizeFunc(10),
                            sort_key="f3",
                            help="Successful query executions per second")),
     ("RowCount/sec",    CM(fixed_width=True,
                            humanize=HumanizeCount,
+                           colorize=GetColorizeFunc(1000),
                            sort_key="f4",
                            help="Rows returned by queries per second")),
     ("CpuUtil",         CM(fixed_width=True,
                            humanize=HumanizePercent,
+                           colorize=GetColorizeFunc(0.10),
                            sort_key="f5",
                            help="Sum cpu utilization accross the cluster")),
     ("Memory/query",    CM(fixed_width=True,
                            humanize=HumanizeBytes,
+                           colorize=GetColorizeFunc(128*1024),
                            sort_key="f6",
                            help="Average memory used per execution")),
     ("ExecutionTime/query", CM(fixed_width=True,
                                humanize=HumanizeTime,
+                               colorize=GetColorizeFunc(10),
                                sort_key="f7",
                                help="Average query latency")),
     ("QueuedTime/query", CM(fixed_width=True,
                             humanize=HumanizeTime,
+                            colorize=GetColorizeFunc(1),
                             sort_key="f8",
                             help="Average queued time per execution"))
 ])

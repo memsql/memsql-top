@@ -73,9 +73,6 @@ def main():
     _WHITE = 'white'
 
     palette = [
-        ('body', _TEXT_GRAY, _WHITE, '', TEXT_GRAY, WHITE),
-        ('body_focus',
-         _TEXT_GRAY, _LIGHT_GRAY, 'underline', TEXT_GRAY, LIGHT_GRAY),
         ('popup', _TEXT_GRAY, _WHITE, '', TEXT_GRAY, WHITE),
         ('head',
          _HEAD_GRAY, _DARK_GRAY, 'bold', HEAD_GRAY, DARK_GRAY),
@@ -89,7 +86,19 @@ def main():
          _TEXT_GRAY, _LIGHT_GRAY, 'bold', TEXT_GRAY, LIGHT_GRAY),
         ('foot_key',
          _ACCENT_BLUE, _LIGHT_GRAY, 'bold,underline', ACCENT_BLUE, LIGHT_GRAY),
+        ('body', _TEXT_GRAY, _WHITE, '', TEXT_GRAY, WHITE),
+        ('body_focus',
+         _TEXT_GRAY, _LIGHT_GRAY, 'underline', TEXT_GRAY, LIGHT_GRAY),
     ]
+
+    for tup  in [(0, _TEXT_GRAY, TEXT_GRAY),
+	         (1, 'light green', 'h77'),
+	         (2, 'yellow', 'h220'),
+	         (3, 'light magenta', 'h202'),
+	         (4, 'light red', 'h160')]:
+	code, old_color, color = tup
+        palette.append(('body_%d' % code, old_color, _WHITE, '', color, WHITE))
+        palette.append(('body_focus_%d' % code, old_color, _LIGHT_GRAY, 'underline', color, LIGHT_GRAY))
 
     memsql_version = conn.get("select @@memsql_version as v").v
     if LooseVersion(memsql_version) < LooseVersion("5.7"):

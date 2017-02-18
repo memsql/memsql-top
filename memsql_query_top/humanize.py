@@ -59,3 +59,11 @@ def HumanizeBytes(b):
 
 def HumanizeCount(c):
     return "%.1f" % c
+
+
+def GetColorizeFunc(scale_point):
+    return lambda x: 0 if x < scale_point else \
+                     1 if x < 10*scale_point else \
+		     2 if x < 1000*scale_point else \
+		     3 if x < 100000*scale_point else \
+		     4
