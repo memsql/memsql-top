@@ -32,8 +32,12 @@ def GetPlanCache(conn):
     # correspond to leaf queries with no corresponding aggregator.
     #
     GET_PLANCACHE_QUERY = "select database_name, query_text, plan_hash, " + \
-                          "commits, rowcount, execution_time, " + \
-                          "queued_time, cpu_time, memory_use " + \
+                          "IFNULL(commits, 0) as commits, " + \
+                          "IFNULL(rowcount, 0) as rowcount, " + \
+                          "IFNULL(execution_time, 0) as execution_time, " + \
+                          "IFNULL(queued_time, 0) as queued_time, " + \
+                          "IFNULL(cpu_time, 0) as cpu_time, " + \
+                          "IFNULL(memory_use, 0) as memory_use " + \
                           "from distributed_plancache_summary " + \
                           "where plan_hash is not null"
 
