@@ -18,17 +18,27 @@
 
 import urwid
 
+from urwid.command_map import ACTIVATE
 
 class PopUpDialog(urwid.WidgetWrap):
     signals = ['close']
 
     def __init__(self, message):
-        close_button = urwid.Button("close")
-        urwid.connect_signal(close_button, 'click',
-                             lambda button: self._emit("close"))
-        pile = urwid.Pile([urwid.Text(message), urwid.Divider(), close_button])
-        fill = urwid.AttrMap(urwid.LineBox(urwid.Filler(pile)), 'popup')
-        super(PopUpDialog, self).__init__(fill)
+        listbox = urwid.ListBox(urwid.SimpleListWalker([
+            urwid.Text(line) for line in message.split("\n")
+        ]))
+        footer = urwid.Pile([
+            urwid.Divider(),
+            urwid.Text("<close>")
+        ])
+        self.box = urwid.LineBox(urwid.Frame(listbox, footer=footer))
+        super(PopUpDialog, self).__init__(urwid.AttrMap(self.box, 'popup'))
+
+    def keypress(self, size, key):
+       if self._command_map[key] != ACTIVATE:
+           return self.box.keypress(size, key)
+
+       self._emit("close")
 
 
 class WrappingPopUpViewer(urwid.WidgetWrap):
