@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2016 by MemSQL. All rights reserved.
+# Copyright (c) 2016, 2017 by MemSQL. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -108,7 +108,7 @@ def main():
     # start tracking queries.
     #
     if not conn.get('select @@forward_aggregator_plan_hash as f').f:
-        sys.exit("Enable forward_aggregator_plan_hash to use query-top")
+        sys.exit("forward_aggregator_plan_hash is required")
 
     # TODO(awreece) This isn't accurately max memory across the whole cluster.
     max_mem = int(conn.get('select (select count(*) from information_schema.leaves) * (select @@maximum_memory) as m').m)

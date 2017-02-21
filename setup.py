@@ -23,7 +23,7 @@ def readme():
 
 
 setup(
-    name='memsql-query-top',
+    name='memsql-top',
     version='0.0.3',
     description='A tool for visualing top queries run against memsql',
     long_description=readme(),
@@ -48,7 +48,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'memsql-query-top=memsql_query_top.main:main',
+            'memsql-top=memsql_top.main:main',
         ],
     }
 )
