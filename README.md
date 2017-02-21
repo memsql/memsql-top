@@ -35,3 +35,11 @@ optional arguments:
   --user USER
   --update-interval INTERVAL
 ```
+
+For best results, use a terminal emulator with 256 color support and set your
+`TERM` environment variable accordingly:
+
+```
+export TERM=xterm-256color
+memsql-top
+```
