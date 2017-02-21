@@ -19,6 +19,7 @@
 import urwid
 import argparse
 import curses
+import logging
 import sys
 
 import database
@@ -148,9 +149,13 @@ def main():
 
     loop = urwid.MainLoop(view, palette, unhandled_input=handle_keys)
 
-    curses.setupterm()
-    if curses.tigetnum("colors") == 256:
-        loop.screen.set_terminal_properties(colors=256)
+    try:
+        curses.setupterm()
+        if curses.tigetnum("colors") == 256:
+            loop.screen.set_terminal_properties(colors=256)
+    except curses.error:
+        logging.warn("Failed to identify terminal color support -- falling back to ANSI terminal colors.")
+        logging.warn("Set TERM=xterm-256color or equivalent for best the experience.")
     loop.set_alarm_in(args.update_interval, dbpoller.poll)
     loop.run()
 
