@@ -115,7 +115,7 @@ def main():
 
     column_headings = ColumnHeadings()
     header = urwid.Pile([
-        urwid.Text("MemSQL - QueryTop"),
+        urwid.Text("MemSQL - MemSQL Top"),
         urwid.Divider(),
         column_headings
     ])
