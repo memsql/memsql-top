@@ -122,12 +122,14 @@ def main():
 
     qlistbox = QueryListBox()
 
-    footer = urwid.Text([
-        ('foot_key', "UP"), ", ", ('foot_key', "DOWN"), ", ",
-        ('foot_key', "PAGE UP"), " and ", ('foot_key', "PAGE DOWN"),
-        " move view  ",
-        ('foot_key', "F#"), " sorts by column ",
-        ('foot_key', "Q"), " exits",
+    footer = urwid.Columns([
+        urwid.Text([
+            ('foot_key', "UP"), ", ", ('foot_key', "DOWN"), ", ",
+            " move view  ",
+            ('foot_key', "F#"), " sorts by column ",
+            ('foot_key', "Q"), " exits",
+        ]),
+        urwid.Text("Send feedback to help@memsql.com.", align="right")
     ])
 
     view = WrappingPopUpViewer(urwid.Frame(
