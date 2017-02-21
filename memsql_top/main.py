@@ -38,9 +38,6 @@ def main():
     parser.add_argument("--password", default="")
     parser.add_argument("--user", default="root")
 
-    parser.add_argument("--cores", default=4, type=int,
-	                help="When calculating max cpu util, assume the cluster has this many cores.")
-
     parser.add_argument("--update-interval", default=3.0, type=float,
 	                help="How frequently to update the screen.")
 
@@ -115,12 +112,9 @@ def main():
 
     dbpoller = DatabasePoller(conn, args.update_interval)
 
-    resources = ResourceMonitor(args.cores, max_mem)
     column_headings = ColumnHeadings()
     header = urwid.Pile([
         urwid.Text("MemSQL - QueryTop"),
-# The resources are currently a lie, don't show them.
-#       resources,
         urwid.Divider(),
         column_headings
     ])
@@ -144,10 +138,6 @@ def main():
                          column_headings.update_sort_column)
     urwid.connect_signal(dbpoller, 'plancache_changed',
                          qlistbox.update_entries)
-    urwid.connect_signal(dbpoller, 'cpu_util_changed',
-                         resources.update_cpu_util)
-    urwid.connect_signal(dbpoller, 'mem_usage_changed',
-                         resources.update_mem_usage)
     urwid.connect_signal(qlistbox, 'query_selected', view.show_popup)
 
     def handle_keys(input):
