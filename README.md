@@ -7,7 +7,8 @@ the past 3 seconds.
 ## Installation
 
 `memsql-top` is easily install through python pip (you need the
-`python-pip` package on most linux distributions first):
+`python-pip` package on most linux distributions first or to install
+`pip` via `sudo easy_install pip`):
 
 ```
 sudo pip install 'git+https://github.com/memsql/memsql-top.git#egg=memsql-top'
