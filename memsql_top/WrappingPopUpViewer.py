@@ -35,7 +35,7 @@ class PopUpDialog(urwid.WidgetWrap):
         super(PopUpDialog, self).__init__(urwid.AttrMap(self.box, 'popup'))
 
     def keypress(self, size, key):
-       if self._command_map[key] != ACTIVATE:
+       if self._command_map[key] != ACTIVATE and key != 'q':
            return self.box.keypress(size, key)
 
        self._emit("close")
