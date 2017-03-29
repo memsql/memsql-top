@@ -32,6 +32,8 @@ from ColumnHeadings import ColumnHeadings
 
 from distutils.version import LooseVersion
 
+from columns import DetectColumnsMetaOrExit
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", default="127.0.0.1")
@@ -50,6 +52,14 @@ def main():
 				password=args.password, user=args.user)
     except Exception as e:
 	sys.exit("Unexpected error when connecting to database: %s" % e)
+
+    columnsMeta = DetectColumnsMetaOrExit(conn)
+
+    # Run any check system queries before we start the DatabasePoller and
+    # start tracking queries.
+    #
+    if not conn.get('select @@forward_aggregator_plan_hash as f').f:
+        sys.exit("forward_aggregator_plan_hash is required")
 
     BLACK = 'h16'
     _BLACK = 'black'
@@ -98,29 +108,20 @@ def main():
         palette.append(('body_%d' % code, old_color, _WHITE, '', color, WHITE))
         palette.append(('body_focus_%d' % code, old_color, _LIGHT_GRAY, 'underline', color, LIGHT_GRAY))
 
-    memsql_version = conn.get("select @@memsql_version as v").v
-    if LooseVersion(memsql_version) < LooseVersion("5.7"):
-	sys.exit("memsql 5.7 or above is required -- got %s" % memsql_version)
+    dbpoller = DatabasePoller(conn, args.update_interval, columnsMeta)
 
-    # Run any check system queries before we start the DatabasePoller and
-    # start tracking queries.
-    #
-    if not conn.get('select @@forward_aggregator_plan_hash as f').f:
-        sys.exit("forward_aggregator_plan_hash is required")
+    column_headings = ColumnHeadings(columnsMeta)
+    resources = ResourceMonitor(columnsMeta.GetMaxCpuTotal(conn),
+                                columnsMeta.GetMaxMemTotal(conn))
+    headerElems = [urwid.Text("MemSQL - MemSQL Top")]
 
-    # TODO(awreece) This isn't accurately max memory across the whole cluster.
-    max_mem = int(conn.get('select (select count(*) from information_schema.leaves) * (select @@maximum_memory) as m').m)
+    # 5.7 did not give us enough info for resource bars.
+    if columnsMeta.minimum_version >= LooseVersion("5.8"):
+        headerElems  += [urwid.Divider(), resources]
+    headerElems += [urwid.Divider(), column_headings]
+    header = urwid.Pile(headerElems)
 
-    dbpoller = DatabasePoller(conn, args.update_interval)
-
-    column_headings = ColumnHeadings()
-    header = urwid.Pile([
-        urwid.Text("MemSQL - MemSQL Top"),
-        urwid.Divider(),
-        column_headings
-    ])
-
-    qlistbox = QueryListBox()
+    qlistbox = QueryListBox(columnsMeta)
 
     footer = urwid.Columns([
         urwid.Text([
@@ -139,9 +140,8 @@ def main():
 
     urwid.connect_signal(qlistbox, 'sort_column_changed',
                          column_headings.update_sort_column)
-    urwid.connect_signal(dbpoller, 'plancache_changed',
-                         qlistbox.update_entries)
-    urwid.connect_signal(qlistbox, 'query_selected', view.show_popup)
+    urwid.connect_signal(qlistbox, 'query_selected',
+                         lambda w, q: view.show_popup(w, columnsMeta.GetPopUpText(conn, q)))
 
     def handle_keys(input):
         if input in ('q', 'Q'):
@@ -150,6 +150,12 @@ def main():
             qlistbox.update_sort_column(input)
 
     loop = urwid.MainLoop(view, palette, unhandled_input=handle_keys)
+    def update_widgets(plancache, cpu, mem):
+        qlistbox.update_entries(plancache)
+        resources.update_cpu_util(cpu)
+        resources.update_mem_usage(mem)
+    dbpoller.start(loop.watch_pipe(lambda _:
+        update_widgets(*dbpoller.get_database_data())))
 
     try:
         curses.setupterm()
@@ -158,7 +164,6 @@ def main():
     except curses.error:
         logging.warn("Failed to identify terminal color support -- falling back to ANSI terminal colors.")
         logging.warn("Set TERM=xterm-256color or equivalent for best the experience.")
-    loop.set_alarm_in(args.update_interval, dbpoller.poll)
     loop.run()
 
 

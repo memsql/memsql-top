@@ -35,34 +35,37 @@ def CleanQuery(query):
 
 
 def HumanizePercent(pct):
+    if pct is None:
+        return ""
     return "%d%%" % (pct * 100)
 
-
-def HumanizeTime(ms):
-    if ms < 1000:
-        return "%dms" % ms
-    elif ms < 1000*1000:
-        return "%.1fs" % (ms / 1000.0)
-    elif ms < 1000*1000*60:
-        return "%.1fm" % (ms / (1000*1000.0))
-    else:
-        return "%.1fh" % (ms / (1000*1000*60.0))
-
-
 def HumanizeBytes(b):
+    if b is None:
+        return ""
     for unit in ["B", "KB", "MB", "GB", "TB", "PB"]:
         if b < 1024.0:
             return "%.1f %s" % (b, unit)
         b /= 1024.0
     return "%.1fEB" % b
 
+def HumanizeTime(t):
+    if t is None:
+        return ""
+    units = [("ms", 1000.0), ("s", 60.0), ("m", 60.0), ("h", 24.0)]
+    for unit, scale in units:
+        if t < scale:
+            return "%.1f %s" % (t, unit)
+        t /= scale
+    return "%.1fd" % t
 
 def HumanizeCount(c):
+    if c is None:
+        return ""
     return "%.1f" % c
 
 
 def GetColorizeFunc(scale_point):
-    return lambda x: 0 if x < scale_point else \
+    return lambda x: 0 if x is None or x < scale_point else \
                      1 if x < 10*scale_point else \
 		     2 if x < 1000*scale_point else \
 		     3 if x < 100000*scale_point else \

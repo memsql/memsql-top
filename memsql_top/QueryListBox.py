@@ -19,18 +19,16 @@
 import urwid
 
 from urwid.command_map import ACTIVATE
-from columns import COLUMNS, DEFAULT_SORT_COLUMN, GetColumnWidth
 
 
 class QueryRow(urwid.AttrMap):
-    signals = ['click']
-
-    def __init__(self, **kwargs):
+    def __init__(self, column_meta, **kwargs):
         columns = []
+        self.column_meta = column_meta
         self.values = {}
         self.text = {}
         self.attr = {}
-        for name, meta in COLUMNS.items():
+        for name, meta in self.column_meta.columns.items():
             t = urwid.Text(meta.humanize(kwargs[name]), wrap="clip")
             color = meta.colorize(kwargs[name])
             a = urwid.AttrMap(t, 'body_%d' % color)
@@ -39,9 +37,9 @@ class QueryRow(urwid.AttrMap):
             self.values[name] = kwargs[name]
 
             if meta.fixed_width:
-                columns.append((GetColumnWidth(name), a))
+                columns.append((meta.display_width(), a))
             else:
-                columns.append(a)
+                columns.append(("weight", meta.display_weight(), a))
 
         content = urwid.Columns(columns, dividechars=1)
         super(QueryRow, self).__init__(content, "body", {
@@ -57,13 +55,11 @@ class QueryRow(urwid.AttrMap):
         return True
 
     def keypress(self, size, key):
-        if self._command_map[key] != ACTIVATE:
-            return key
-
-        self._emit("click")
+        # We don't handle any keypresses.
+        return key
 
     def update(self, **kwargs):
-        for name, meta in COLUMNS.items():
+        for name, meta in self.column_meta.columns.items():
             self.text[name].set_text(meta.humanize(kwargs[name]))
             color = meta.colorize(kwargs[name])
             self.attr[name].set_attr_map({None: 'body_%d' % color})
@@ -73,11 +69,13 @@ class QueryRow(urwid.AttrMap):
 class QueryListBox(urwid.ListBox):
     signals = ['sort_column_changed', 'query_selected']
 
-    def __init__(self):
+    def __init__(self, column_meta):
         self.qrlist = urwid.SimpleFocusListWalker([])
         self.widgets = {}
-        self.sort_column = DEFAULT_SORT_COLUMN
-        self.sort_keys_map = {c.sort_key: name for name, c in COLUMNS.items()}
+        self.column_meta = column_meta
+        self.sort_column = column_meta.default_sort_key
+        self.sort_keys_map = {c.sort_key: name
+                              for name, c in column_meta.columns.items()}
         super(QueryListBox, self).__init__(self.qrlist)
 
     def sort_columns(self):
@@ -87,30 +85,36 @@ class QueryListBox(urwid.ListBox):
     def sort_keys(self):
         return self.sort_keys_map.keys()
 
+    def keypress(self, size, key):
+        if self._command_map[key] == ACTIVATE:
+            self._emit("query_selected",
+                self.focus.values[self.column_meta.focus_column])
+            return None
+        else:
+            return super(QueryListBox, self).keypress(size, key)
+
+
     def update_sort_column(self, key):
         self.sort_column = self.sort_keys_map[key]
         self.sort_columns()
+        self.qrlist.set_focus(0)
         self._emit('sort_column_changed', self.sort_column)
 
-    def update_entries(self, _, diff_plancache):
+    def update_entries(self, diff_plancache):
         # Remove entries that become obsolete
         remove = [k for k in self.widgets if k not in diff_plancache]
         for qr in remove:
             self.qrlist.remove(self.widgets[qr])
             del self.widgets[qr]
 
+        was_empty = len(self.qrlist) == 0
         for key, ent in diff_plancache.items():
             if key not in self.widgets:
-                self.widgets[key] = QueryRow(**ent)
-                #
-                # TODO: Does this prevent the widget from being garbage
-                # collected?
-                #
-                urwid.connect_signal(self.widgets[key], 'click',
-                                     lambda qr: self._emit("query_selected",
-                                                           qr.values['Query']))
+                self.widgets[key] = QueryRow(self.column_meta, **ent)
                 self.qrlist.append(self.widgets[key])
             else:
                 self.widgets[key].update(**ent)
 
         self.sort_columns()
+        if was_empty:
+            self.qrlist.set_focus(0)

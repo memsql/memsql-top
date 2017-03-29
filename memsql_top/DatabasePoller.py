@@ -20,107 +20,73 @@ import urwid
 
 from attrdict import AttrDict
 from collections import namedtuple
+import os
+import threading
+import time
 
-from columns import CheckHasDataForAllColumns
+from decimal import Decimal
 
-def GetPlanCache(conn):
-    #
-    # We store the parameterized query and deparameterize it in GetPlanCache so
-    # that we can filter out this query.
-    #
-    # We filter out queries where the plan_hash is null, because those
-    # correspond to leaf queries with no corresponding aggregator.
-    #
-    GET_PLANCACHE_QUERY = "select database_name, query_text, plan_hash, " + \
-                          "IFNULL(commits, 0) as commits, " + \
-                          "IFNULL(rowcount, 0) as rowcount, " + \
-                          "IFNULL(execution_time, 0) as execution_time, " + \
-                          "IFNULL(queued_time, 0) as queued_time, " + \
-                          "IFNULL(cpu_time, 0) as cpu_time, " + \
-                          "IFNULL(memory_use, 0) as memory_use " + \
-                          "from distributed_plancache_summary " + \
-                          "where plan_hash is not null"
+def DiffSnapshot(a, b):
+    akeys = set(a.keys())
+    bkeys = set(b.keys())
 
-    rows = conn.query(GET_PLANCACHE_QUERY)
-    return {
-        r.plan_hash: r
-        for r in rows if r.query_text != GET_PLANCACHE_QUERY
-    }
+    assert akeys == bkeys, (akeys - bkeys, bkeys - akeys)
+
+    ret = AttrDict({})
+    for k in akeys:
+        if isinstance(a[k], (int, Decimal)) and k != "run_count" and not b[k] is None:
+            ret[k] = int(a[k] - b[k]) if a[k] >= b[k] else 0
+        else:
+            ret[k] = a[k]
+    return ret
 
 
-def NormalizeDiffPlanCacheEntry(interval, database_name, query_text,
-                                commits, rowcount, cpu_time, execution_time,
-                                memory_use, queued_time):
-    return CheckHasDataForAllColumns(AttrDict({
-        'Database': database_name,
-        'Query': query_text,
-        'Executions/sec': float(commits) / interval,
-        'RowCount/sec': float(rowcount) / interval,
-        'CpuUtil': float(cpu_time) / 1000.0 / interval,
-        'ExecutionTime/query': float(execution_time) / float(commits),
-        'Memory/query': float(memory_use) / float(commits),
-        'QueuedTime/query': float(queued_time) / float(commits)
-    }))
-
-
-def DiffPlanCache(new_plancache, old_plancache, interval):
+def DiffPlanCache(meta, new_plancache, old_plancache, interval):
     diff_plancache = {}
     for key, n_ent in new_plancache.items():
-        if key not in old_plancache:
-            #
-            # It is possible for a plan cache entry to exist (or be newly
-            # created) with a zero commit-count: for example, a slow query that
-            # has not yet completed or erroring queries.
-            #
-            if n_ent.commits > 0:
-                diff_plancache[key] = NormalizeDiffPlanCacheEntry(
-                    interval,
-                    database_name=n_ent.database_name,
-                    query_text=n_ent.query_text,
-                    commits=n_ent.commits,
-                    rowcount=n_ent.rowcount,
-                    execution_time=n_ent.execution_time,
-                    cpu_time=n_ent.cpu_time,
-                    memory_use=n_ent.memory_use,
-                    queued_time=n_ent.queued_time)
-        elif n_ent.commits - old_plancache[key].commits > 0:
+        delta = n_ent
+        if key in old_plancache:
             o_ent = old_plancache[key]
-            diff_plancache[key] = NormalizeDiffPlanCacheEntry(
-                interval,
-                database_name=n_ent.database_name,
-                query_text=n_ent.query_text,
-                commits=n_ent.commits - o_ent.commits,
-                rowcount=n_ent.rowcount - o_ent.rowcount,
-                execution_time=n_ent.execution_time - o_ent.execution_time,
-                cpu_time=n_ent.cpu_time - o_ent.cpu_time,
-                memory_use=n_ent.memory_use - o_ent.memory_use,
-                queued_time=n_ent.queued_time - o_ent.queued_time
-            )
+            delta = DiffSnapshot(n_ent, o_ent)
+
+        if meta.IsDeltaInteresting(delta):
+            diff_plancache[key] = meta.NormalizeCounterDelta(delta, interval)
+
     return diff_plancache
 
 
-class DatabasePoller(urwid.Widget):
-    signals = ['plancache_changed', 'cpu_util_changed', 'mem_usage_changed']
-
-    def __init__(self, conn, update_interval):
+class DatabasePoller(threading.Thread):
+    def __init__(self, conn, update_interval, column_meta):
         self.conn = conn
         self.update_interval = update_interval
-        self.plancache = GetPlanCache(self.conn)
+        self.column_meta = column_meta
+        self.plancache = self.column_meta.GetAllCounterSnapshots(self.conn)
+        self.diff_plancache = dict()
+        self.sum_cpu_util = 0
+        self.current_mem = 0
         super(DatabasePoller, self).__init__()
 
+    def get_database_data(self):
+        return self.diff_plancache, self.sum_cpu_util, self.current_mem
 
-    def poll(self, loop, _):
-        loop.set_alarm_in(self.update_interval, self.poll)
-        new_plancache = GetPlanCache(self.conn)
+    def run(self):
+        while True:
+            time.sleep(self.update_interval)
+            self.poll()
+            os.write(self.signal_file, "\n")
 
-        diff_plancache = DiffPlanCache(new_plancache, self.plancache,
+    def start(self, signal_file):
+        self.daemon = True
+        self.signal_file = signal_file
+        super(DatabasePoller, self).start()
+
+    def poll(self):
+        new_plancache = self.column_meta.GetAllCounterSnapshots(self.conn)
+
+        self.diff_plancache = DiffPlanCache(self.column_meta,
+                                       new_plancache, self.plancache,
                                        self.update_interval)
-        self._emit('plancache_changed', diff_plancache)
         self.plancache = new_plancache
 
-        sum_cpu_util = sum(pe.CpuUtil for pe in diff_plancache.values())
-        self._emit('cpu_util_changed', sum_cpu_util)
-
-        # TODO(awreece) This isn't accurately max memory across the whole cluster.
-        tsm_row = self.conn.get("show status like 'Total_server_memory'")
-        self._emit('mem_usage_changed', float(tsm_row.Value.split(" ")[0]))
+        self.sum_cpu_util = self.column_meta.GetCpuTotalFromAllDeltas(self.diff_plancache)
+        self.current_mem = self.column_meta.GetCurrentMemTotal(self.conn)

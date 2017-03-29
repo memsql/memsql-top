@@ -43,8 +43,8 @@ class ResourceMonitor(urwid.WidgetWrap):
 #            ])
         ]))
 
-    def update_cpu_util(self, _, util):
+    def update_cpu_util(self, util):
         self.cpu_utilbar.set_completion(util)
 
-    def update_mem_usage(self, _, usage):
+    def update_mem_usage(self, usage):
         self.mem_utilbar.set_completion(usage)

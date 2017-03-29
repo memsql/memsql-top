@@ -19,8 +19,6 @@
 import urwid
 
 from collections import OrderedDict
-from columns import COLUMNS, DEFAULT_SORT_COLUMN, GetColumnWidth
-
 
 class SortableColumn(urwid.AttrMap):
     def __init__(self, content, attr_class, is_sort_column=False):
@@ -46,10 +44,11 @@ class SortableColumn(urwid.AttrMap):
 
 
 class ColumnHeadings(urwid.Columns):
-    def __init__(self):
+    def __init__(self, column_meta):
+        self.column_meta = column_meta
         self.columns = OrderedDict()
         columns = []
-        for name, meta in COLUMNS.items():
+        for name, meta in self.column_meta.columns.items():
             contents = name
             if meta.sort_key:
                 contents = [name, ' ', ('head_key', "(%s)" % meta.sort_key.upper())]
@@ -59,11 +58,11 @@ class ColumnHeadings(urwid.Columns):
             self.columns[name] = contents
             if meta.fixed_width:
                 assert (contents.original_widget.pack()[0] <=
-                        GetColumnWidth(name))
-                columns.append((len(name) + len(" (F#)"), contents))
+                        meta.display_width())
+                columns.append((meta.display_width(), contents))
             else:
-                columns.append(contents)
-        self.sort_column = DEFAULT_SORT_COLUMN
+                columns.append(("weight", meta.display_weight(), contents))
+        self.sort_column = column_meta.default_sort_key
         self.columns[self.sort_column].update_sort_column(True)
         super(ColumnHeadings, self).__init__(columns, dividechars=1)
 
