@@ -93,6 +93,13 @@ class QueryListBox(urwid.ListBox):
         else:
             return super(QueryListBox, self).keypress(size, key)
 
+    def render(self, size, focus):
+        if "top" not in self.ends_visible(size, focus):
+            _, maxr = size
+            assert maxr is not None and maxr > 0
+            self.set_focus(maxr - 1)
+            self.set_focus_valign("bottom")
+        return super(QueryListBox, self).render(size, focus)
 
     def update_sort_column(self, key):
         self.sort_column = self.sort_keys_map[key]
