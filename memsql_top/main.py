@@ -108,7 +108,7 @@ def main():
         palette.append(('body_%d' % code, old_color, _WHITE, '', color, WHITE))
         palette.append(('body_focus_%d' % code, old_color, _LIGHT_GRAY, 'underline', color, LIGHT_GRAY))
 
-    dbpoller = DatabasePoller(conn, args.update_interval, columnsMeta)
+    dbpoller = DatabasePoller(args, columnsMeta)
 
     column_headings = ColumnHeadings(columnsMeta)
     resources = ResourceMonitor(columnsMeta.GetMaxCpuTotal(conn),

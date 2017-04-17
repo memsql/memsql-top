@@ -20,7 +20,9 @@ import urwid
 
 from attrdict import AttrDict
 from collections import namedtuple
+import database
 import os
+import sys
 import threading
 import time
 
@@ -56,9 +58,20 @@ def DiffPlanCache(meta, new_plancache, old_plancache, interval):
 
 
 class DatabasePoller(threading.Thread):
-    def __init__(self, conn, update_interval, column_meta):
+    def __init__(self, args, column_meta):
+        try:
+            #
+            # The connection objects are not thread safe, so create a new
+            # connection.
+            #
+            conn = database.connect(host=args.host, port=args.port,
+                                    database="information_schema",
+                                    password=args.password, user=args.user)
+        except Exception as e:
+            sys.exit("Unexpected error when connecting to database: %s" % e)
+
         self.conn = conn
-        self.update_interval = update_interval
+        self.update_interval = args.update_interval
         self.column_meta = column_meta
         self.plancache = self.column_meta.GetAllCounterSnapshots(self.conn)
         self.diff_plancache = dict()
