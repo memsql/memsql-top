@@ -16,6 +16,8 @@
 # limitations under the License.
 #
 
+from __future__ import print_function
+
 import urwid
 import argparse
 import curses
@@ -23,6 +25,8 @@ import logging
 import sys
 
 import database
+
+import pkg_resources
 
 from DatabasePoller import DatabasePoller
 from QueryListBox import QueryListBox
@@ -34,17 +38,28 @@ from distutils.version import LooseVersion
 
 from columns import DetectColumnsMetaOrExit
 
+
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", default=3306, type=int)
-    parser.add_argument("--password", default="")
-    parser.add_argument("--user", default="root")
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("-h", "--host", default="127.0.0.1")
+    parser.add_argument("-P", "--port", default=3306, type=int)
+    parser.add_argument("-p", "--password", default="")
+    parser.add_argument("-u", "--user", default="root")
+    parser.add_argument("-v", "--version", action="store_true")
+    parser.add_argument("-?", "--help", action="store_true",
+                        help="Show this help message and exit")
 
     parser.add_argument("--update-interval", default=3.0, type=float,
-	                help="How frequently to update the screen.")
+                        help="How frequently to update the screen.")
 
     args = parser.parse_args()
+
+    if args.help:
+        parser.print_help()
+        sys.exit(0)
+    elif args.version:
+        print(pkg_resources.require("memsql-top")[0].version)
+        sys.exit(0)
 
     try:
 	conn = database.connect(host=args.host, port=args.port,

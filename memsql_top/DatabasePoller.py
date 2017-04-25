@@ -73,6 +73,7 @@ class DatabasePoller(threading.Thread):
         self.conn = conn
         self.update_interval = args.update_interval
         self.column_meta = column_meta
+        self.last_read_time = time.time()
         self.plancache = self.column_meta.GetAllCounterSnapshots(self.conn)
         self.diff_plancache = dict()
         self.sum_cpu_util = 0
@@ -94,11 +95,13 @@ class DatabasePoller(threading.Thread):
         super(DatabasePoller, self).start()
 
     def poll(self):
+        new_time = time.time()
         new_plancache = self.column_meta.GetAllCounterSnapshots(self.conn)
 
         self.diff_plancache = DiffPlanCache(self.column_meta,
                                        new_plancache, self.plancache,
-                                       self.update_interval)
+                                       new_time - self.last_read_time)
+        self.last_read_time = new_time
         self.plancache = new_plancache
 
         self.sum_cpu_util = self.column_meta.GetCpuTotalFromAllDeltas(self.diff_plancache)
