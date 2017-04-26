@@ -79,7 +79,7 @@ class MemSqlColumnsMetadata(object):
 
 class Columns57(MemSqlColumnsMetadata):
     def __init__(self):
-        sort_keys = iter(map(lambda x: "f%d" % x, xrange(1, 13)))
+        sort_keys = iter(map(lambda x: "f%d" % x, range(1, 13)))
         super(Columns57, self).__init__(OrderedDict((cm.name, cm) for cm in [
             ColumnMetadata("Database",
                 "database_name",
@@ -204,7 +204,7 @@ class Columns57(MemSqlColumnsMetadata):
 
 class Columns58(MemSqlColumnsMetadata):
     def __init__(self):
-        sort_keys = iter(map(lambda x: "f%d" % x, xrange(1, 13)))
+        sort_keys = iter(map(lambda x: "f%d" % x, range(1, 13)))
         super(Columns58, self).__init__(OrderedDict((cm.name, cm) for cm in [
             ColumnMetadata("Type",
                 "activity_type",

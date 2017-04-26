@@ -62,11 +62,11 @@ def main():
         sys.exit(0)
 
     try:
-	conn = database.connect(host=args.host, port=args.port,
-				database="information_schema",
-				password=args.password, user=args.user)
+        conn = database.connect(host=args.host, port=args.port,
+                                database="information_schema",
+                                password=args.password, user=args.user)
     except Exception as e:
-	sys.exit("Unexpected error when connecting to database: %s" % e)
+        sys.exit("Unexpected error when connecting to database: %s" % e)
 
     columnsMeta = DetectColumnsMetaOrExit(conn)
 
@@ -115,11 +115,11 @@ def main():
     ]
 
     for tup  in [(0, _TEXT_GRAY, TEXT_GRAY),
-	         (1, 'light green', 'h77'),
-	         (2, 'yellow', 'h220'),
-	         (3, 'light magenta', 'h202'),
-	         (4, 'light red', 'h160')]:
-	code, old_color, color = tup
+                 (1, 'light green', 'h77'),
+                 (2, 'yellow', 'h220'),
+                 (3, 'light magenta', 'h202'),
+                 (4, 'light red', 'h160')]:
+        code, old_color, color = tup
         palette.append(('body_%d' % code, old_color, _WHITE, '', color, WHITE))
         palette.append(('body_focus_%d' % code, old_color, _LIGHT_GRAY, 'underline', color, LIGHT_GRAY))
 

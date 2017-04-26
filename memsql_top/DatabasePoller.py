@@ -87,7 +87,7 @@ class DatabasePoller(threading.Thread):
         while True:
             time.sleep(self.update_interval)
             self.poll()
-            os.write(self.signal_file, "\n")
+            os.write(self.signal_file, str.encode("\n"))
 
     def start(self, signal_file):
         self.daemon = True
