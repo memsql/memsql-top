@@ -1,10 +1,12 @@
 `memsql-top` is a `top`-like interface that shows the resource usage
-of queries across a Memsql 5.7 cluster.
+of active queries on a Memsql 5.8 cluster.
 
-It shows a periodically updating view of the queries that have _completed_ in
+It shows a periodically updating view of the queries that were running in
 the past 3 seconds:
 
-![Screenshot](/img/screenshot.png?raw=true "memsql-top on an active 5.7 cluster")
+![Screenshot](/img/screenshot.png?raw=true "memsql-top on an active 5.8 cluster")
+
+### Warning for MemSQL 5.7
 
 Note that for MemSQL 5.7, `memsql-top` exposes only limited resource 
 information and may produce surprising results for long running queries
@@ -24,7 +26,7 @@ it finishes.
 
 ### Installing `memsql-top`
 
-Once you have `pip` installed, it is very easy to install `memsql-top`:
+_Once you have `pip` installed_, it is very easy to install `memsql-top`:
 
 ```
 sudo pip install 'git+https://github.com/memsql/memsql-top.git#egg=memsql-top'
@@ -43,6 +45,54 @@ And then try to `pip install` `memsql-top` again with the command above.
 ```
 sudo pip install --upgrade 'git+https://github.com/memsql/memsql-top.git#egg=memsql-top'
 ```
+
+### Installing `memsql-top` without root
+
+If you cannot install `memsql-top` globally, we recommend you use `virtualenv`
+to install `memsql-top` and its dependencies.
+
+1. Install virtualenv:
+
+    ```console
+    pip install --user virtualenv
+    ```
+
+2. Set up a new directory as a virtual python environment:
+
+    ```console
+    mkdir "$HOME/memsql-top-venv"
+    virtualenv "$HOME/memsql-top-venv"
+    ```
+
+3. Install memsql-top inside the virtual python environment:
+
+    ```console
+    (source "$HOME/memsql-top-venv/bin/activate" &&
+	 pip install 'git+https://github.com/memsql/memsql-top.git#egg=memsql-top')
+    ```
+
+4. Make a helpful bash script to load the virtual python environment and run
+   `memsql-top`:
+
+    ```console
+    # Make a directory for user scripts
+    mkdir "$HOME/bin"
+
+    # Make sure we can find this directory in our PATH.
+    export PATH="$HOME/bin":"$PATH"
+    echo 'export PATH="$HOME/bin":"$PATH"' >>.bashrc
+    echo 'export PATH="$HOME/bin":"$PATH"' >>.bash_profile
+
+    # Create a script that loads the venv and runs memsql-top
+    cat <<-EOF >"$HOME/bin/memsql-top"
+    #!/bin/bash
+    source "$HOME/memsql-top-venv/bin/activate"
+    exec memsql-top "\$@"
+    EOF
+
+    # Make sure our script is executable
+    chmod +x "$HOME/bin/memsql-top"
+    ```
 
 ## Usage
 
