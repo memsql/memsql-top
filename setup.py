@@ -24,14 +24,14 @@ def readme():
 
 setup(
     name='memsql-top',
-    version='0.0.8',
+    version='0.0.9',
     description='A tool for visualing top queries run against memsql',
     long_description=readme(),
     author='Alex Reece',
     author_email='awreece' '@' 'gmail.com',
     license='Apache License',
     install_requires=[
-        'urwid',
+        'urwid>=1.3.1',
         'attrdict',
         'pymysql',
     ],
