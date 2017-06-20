@@ -24,7 +24,7 @@ def readme():
 
 setup(
     name='memsql-top',
-    version='0.0.9',
+    version='0.0.10',
     description='A tool for visualing top queries run against memsql',
     long_description=readme(),
     author='Alex Reece',

@@ -17,27 +17,25 @@
 #
 
 from __future__ import print_function
+from __future__ import absolute_import
 
 import urwid
 import argparse
 import curses
 import logging
 import sys
-
-import database
-
 import pkg_resources
-
-from DatabasePoller import DatabasePoller
-from QueryListBox import QueryListBox
-from ResourceMonitor import ResourceMonitor
-from WrappingPopUpViewer import WrappingPopUpViewer
-from ColumnHeadings import ColumnHeadings
 
 from distutils.version import LooseVersion
 
-from columns import DetectColumnsMetaOrExit
+from .database import connect
 
+from .DatabasePoller import DatabasePoller
+from .QueryListBox import QueryListBox
+from .ResourceMonitor import ResourceMonitor
+from .WrappingPopUpViewer import WrappingPopUpViewer
+from .ColumnHeadings import ColumnHeadings
+from .columns import DetectColumnsMetaOrExit
 
 def main():
     parser = argparse.ArgumentParser(add_help=False)
@@ -62,9 +60,9 @@ def main():
         sys.exit(0)
 
     try:
-        conn = database.connect(host=args.host, port=args.port,
-                                database="information_schema",
-                                password=args.password, user=args.user)
+        conn = connect(host=args.host, port=args.port,
+                       database="information_schema",
+                       password=args.password, user=args.user)
     except Exception as e:
         sys.exit("Unexpected error when connecting to database: %s" % e)
 

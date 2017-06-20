@@ -16,17 +16,20 @@
 # limitations under the License.
 #
 
+from __future__ import absolute_import
+
 import urwid
 
 from attrdict import AttrDict
 from collections import namedtuple
-import database
 import os
 import sys
 import threading
 import time
 
 from decimal import Decimal
+
+from .database import connect
 
 def DiffSnapshot(a, b):
     akeys = set(a.keys())
@@ -64,9 +67,9 @@ class DatabasePoller(threading.Thread):
             # The connection objects are not thread safe, so create a new
             # connection.
             #
-            conn = database.connect(host=args.host, port=args.port,
-                                    database="information_schema",
-                                    password=args.password, user=args.user)
+            conn = connect(host=args.host, port=args.port,
+                           database="information_schema",
+                           password=args.password, user=args.user)
         except Exception as e:
             sys.exit("Unexpected error when connecting to database: %s" % e)
 

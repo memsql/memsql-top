@@ -16,14 +16,17 @@
 # limitations under the License.
 #
 
+from __future__ import absolute_import
+
 from attrdict import AttrDict
 from collections import OrderedDict, namedtuple
 
 from distutils.version import LooseVersion
 
 import logging
-from humanize import *
 from decimal import Decimal
+
+from .humanize import *
 
 class ColumnMetadata(object):
     __slots__ = ["name", "memsql_column_name", "fixed_width",
