@@ -37,20 +37,21 @@ from .WrappingPopUpViewer import WrappingPopUpViewer
 from .ColumnHeadings import ColumnHeadings
 from .columns import DetectColumnsMetaOrExit
 
-def main():
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("-h", "--host", default="127.0.0.1")
-    parser.add_argument("-P", "--port", default=3306, type=int)
-    parser.add_argument("-p", "--password", default="")
-    parser.add_argument("-u", "--user", default="root")
-    parser.add_argument("-v", "--version", action="store_true")
-    parser.add_argument("-?", "--help", action="store_true",
-                        help="Show this help message and exit")
+def main(args=None):
+    if args is None:
+        parser = argparse.ArgumentParser(add_help=False)
+        parser.add_argument("-h", "--host", default="127.0.0.1")
+        parser.add_argument("-P", "--port", default=3306, type=int)
+        parser.add_argument("-p", "--password", default="")
+        parser.add_argument("-u", "--user", default="root")
+        parser.add_argument("-v", "--version", action="store_true")
+        parser.add_argument("-?", "--help", action="store_true",
+                            help="Show this help message and exit")
 
-    parser.add_argument("--update-interval", default=3.0, type=float,
-                        help="How frequently to update the screen.")
+        parser.add_argument("--update-interval", default=3.0, type=float,
+                            help="How frequently to update the screen.")
 
-    args = parser.parse_args()
+        args = parser.parse_args()
 
     if args.help:
         parser.print_help()
