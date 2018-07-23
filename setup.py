@@ -31,9 +31,9 @@ setup(
     author_email='awreece' '@' 'gmail.com',
     license='Apache License',
     install_requires=[
-        'urwid>=1.3.1',
-        'attrdict',
-        'pymysql',
+        'urwid==1.3.1',
+        'attrdict==2.0.0',
+        'pymysql==0.7.11',
     ],
     packages=find_packages(),
     classifiers=[
